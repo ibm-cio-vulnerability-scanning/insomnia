@@ -34,7 +34,7 @@
     "start:electron": "cross-env NODE_ENV=development esr esbuild.main.ts && electron .",
     "test": "jest",
     "test:watch": "jest --watch",
-    "type-check": "tsc --noEmit -p tsconfig.build.json",
+    "type-check": "tsc --noEmit --project tsconfig.build.json",
     "type-check:watch": "npm run type-check -- --watch"
   },
   "dependencies": {
@@ -42,6 +42,7 @@
     "@grpc/grpc-js": "^1.1.8",
     "@grpc/proto-loader": "^0.5.5",
     "@hapi/hawk": "^8.0.0",
+    "@jest/globals": "^28.1.0",
     "@stoplight/spectral": "^5.9.0",
     "analytics-node": "^6.0.0",
     "aws4": "^1.11.0",
