@@ -1,6 +1,6 @@
 import { autoBindMethodsForReact } from 'class-autobind-decorator';
 import * as importers from 'insomnia-importers';
-import React, { Fragment, lazy, PureComponent, Suspense } from 'react';
+import React, { FC, Fragment, lazy, PureComponent, Suspense } from 'react';
 import { connect, useSelector } from 'react-redux';
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import { AnyAction, bindActionCreators, Dispatch } from 'redux';
@@ -73,18 +73,13 @@ import { WorkspaceEnvironmentsEditModal } from './modals/workspace-environments-
 import { WorkspaceSettingsModal } from './modals/workspace-settings-modal';
 import { WrapperModal } from './modals/wrapper-modal';
 
-const lazyWithPreload = (
-  importFn: () => Promise<{ default: React.ComponentType<any> }>
-): [
-    React.LazyExoticComponent<React.ComponentType<any>>,
-    () => Promise<{
-      default: React.ComponentType<any>;
-    }>
-  ] => {
+const lazyWithPreload = <T extends FC<any>>(
+  importFn: () => Promise<{ default: T }>
+) => {
   const LazyComponent = lazy(importFn);
   const preload = () => importFn();
 
-  return [LazyComponent, preload];
+  return [LazyComponent, preload] as const;
 };
 
 const [WrapperHome, preloadWrapperHome] = lazyWithPreload(
@@ -320,6 +315,8 @@ export class WrapperClass extends PureComponent<Props, State> {
       handleUpdateRequestMimeType,
       gitVCS,
       vcs,
+      handleDuplicateRequest,
+      headerEditorKey,
     } = this.props;
 
     // Setup git sync dropdown for use in Design/Debug pages
@@ -497,6 +494,9 @@ export class WrapperClass extends PureComponent<Props, State> {
                   handleSetResponseFilter={this._handleSetResponseFilter}
                   handleUpdateRequestMimeType={handleUpdateRequestMimeType}
                   handleSetActiveResponse={this.handleSetActiveResponse}
+                  handleDuplicateRequest={handleDuplicateRequest}
+                  vcs={vcs}
+                  headerEditorKey={headerEditorKey}
                 />
               </Suspense>
             }
