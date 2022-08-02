@@ -277,28 +277,30 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
   const handleClearDownloadLocation = () => updateRequestMetaByParentId(request._id, { downloadPath: null });
 
   const handleKeyDown: KeyboardEventHandler = useCallback(event => {
-    if (event.code === 'Enter' && request.url) {
+    if (!event.metaKey && !event.altKey && !event.ctrlKey && !event.shiftKey && event.code === 'Enter' && request.url) {
       send();
       return;
     }
-    if (!inputRef.current) {
-      return;
-    }
-    executeHotKey(event.nativeEvent, hotKeyRefs.REQUEST_FOCUS_URL, () => {
-      inputRef.current?.focus();
-      inputRef.current?.selectAll();
-    });
-    executeHotKey(event.nativeEvent, hotKeyRefs.REQUEST_TOGGLE_HTTP_METHOD_MENU, () => {
-      methodDropdownRef.current?.toggle();
-    });
-    executeHotKey(event.nativeEvent, hotKeyRefs.REQUEST_SHOW_OPTIONS, () => {
-      dropdownRef.current?.toggle(true);
-    });
   }, [request.url, send]);
 
   const handleGlobalKeyDown = useCallback(async (event: KeyboardEvent) => {
+    if (!inputRef.current) {
+      return;
+    }
+
     executeHotKey(event, hotKeyRefs.REQUEST_SEND, () => {
       send();
+    });
+
+    executeHotKey(event, hotKeyRefs.REQUEST_FOCUS_URL, () => {
+      inputRef.current?.focus();
+      inputRef.current?.selectAll();
+    });
+    executeHotKey(event, hotKeyRefs.REQUEST_TOGGLE_HTTP_METHOD_MENU, () => {
+      methodDropdownRef.current?.toggle();
+    });
+    executeHotKey(event, hotKeyRefs.REQUEST_SHOW_OPTIONS, () => {
+      dropdownRef.current?.toggle(true);
     });
   }, [send]);
 
