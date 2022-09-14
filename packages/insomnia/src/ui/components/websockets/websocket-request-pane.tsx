@@ -19,9 +19,6 @@ import { WebSocketActionBar } from './action-bar';
 
 const supportedAuthTypes: AuthType[] = ['basic', 'bearer'];
 
-const EditorWrapper = styled.div({
-  height: '100%',
-});
 const SendMessageForm = styled.form({
   width: '100%',
   height: '100%',
@@ -36,6 +33,10 @@ const SendButton = styled.button({
   borderRadius: 'var(--radius-md)',
   ':hover': {
     filter: 'brightness(0.8)',
+  },
+  ':enabled': {
+    background: 'var(--color-surprise)',
+    color: 'var(--color-font-surprise)',
   },
 });
 const PaneSendButton = styled.div({
@@ -58,6 +59,13 @@ interface FormProps {
   environmentId: string;
   createOrUpdatePayload: (payload: string, mode: string) => Promise<void>;
 }
+
+const PayloadTabPanel = styled(TabPanel)({
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100%',
+  width: '100%',
+});
 
 const WebSocketRequestForm: FC<FormProps> = ({
   request,
@@ -114,16 +122,15 @@ const WebSocketRequestForm: FC<FormProps> = ({
   // Same as with regular requests
   return (
     <SendMessageForm id="websocketMessageForm" onSubmit={handleSubmit}>
-      <EditorWrapper>
-        <CodeEditor
-          uniquenessKey={request._id}
-          mode={previewMode}
-          ref={editorRef}
-          defaultValue=''
-          onChange={value => createOrUpdatePayload(value, previewMode)}
-          enableNunjucks
-        />
-      </EditorWrapper>
+      <CodeEditor
+        manualPrettify
+        uniquenessKey={request._id}
+        mode={previewMode}
+        ref={editorRef}
+        defaultValue=''
+        onChange={value => createOrUpdatePayload(value, previewMode)}
+        enableNunjucks
+      />
     </SendMessageForm>
   );
 };
@@ -212,7 +219,7 @@ export const WebSocketRequestPane: FC<Props> = ({ request, workspaceId, environm
             <button>Headers</button>
           </Tab>
         </TabList>
-        <TabPanel className="react-tabs__tab-panel">
+        <PayloadTabPanel className="react-tabs__tab-panel">
           <PaneSendButton>
             <SendButton
               type="submit"
@@ -230,7 +237,7 @@ export const WebSocketRequestPane: FC<Props> = ({ request, workspaceId, environm
             createOrUpdatePayload={createOrUpdatePayload}
             environmentId={environmentId}
           />
-        </TabPanel>
+        </PayloadTabPanel>
         <TabPanel className="react-tabs__tab-panel">
           <AuthWrapper
             key={`${uniqueKey}-${request.authentication.type}-auth-header`}
