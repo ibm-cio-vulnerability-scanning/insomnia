@@ -61,12 +61,12 @@ export const WebSocketResponsePane: FC<{ requestId: string }> =
             icon={<i className="fa fa-paper-plane" />}
             documentationLinks={[
               {
-                title: 'Introduction to Insomnia',
-                url: 'https://docs.insomnia.rest/insomnia/get-started',
+                title: 'Introduction to WebSockets in Insomnia',
+                url: 'https://docs.insomnia.rest/insomnia/requests',
               },
             ]}
             title="Enter a URL and connect to a WebSocket server to start sending data"
-            secondaryAction="Select a payload type from above to send data to the connection"
+            secondaryAction="Select a payload type to send data to the connection"
           />
         </Pane>
       );
@@ -180,9 +180,8 @@ const WebSocketActiveResponsePane: FC<{ requestId: string; response: WebSocketRe
           <div className="scrollable pad">
             <ErrorBoundary key={response._id} errorClassName="font-error pad text-center">
               <ResponseCookiesViewer
-                // @TODO: Implement cookie storing and sending
-                cookiesSent={false}
-                cookiesStored={false}
+                cookiesSent={response.settingSendCookies}
+                cookiesStored={response.settingStoreCookies}
                 headers={cookieHeaders}
               />
             </ErrorBoundary>
