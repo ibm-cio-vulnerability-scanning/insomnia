@@ -3,8 +3,10 @@ import { deconstructQueryStringToParams, extractQueryStringFromUrl } from 'insom
 import React, { FC, useCallback, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
+import styled from 'styled-components';
 
 import { getContentTypeFromHeaders } from '../../../common/constants';
+import { database } from '../../../common/database';
 import * as models from '../../../models';
 import { queryAllWorkspaceUrls } from '../../../models/helpers/query-all-workspace-urls';
 import { update } from '../../../models/helpers/request-operations';
@@ -27,6 +29,26 @@ import { RenderedQueryString } from '../rendered-query-string';
 import { RequestUrlBar, RequestUrlBarHandle } from '../request-url-bar';
 import { Pane, paneBodyClasses, PaneHeader } from './pane';
 import { PlaceholderRequestPane } from './placeholder-request-pane';
+
+const HeaderTabPanel = styled(TabPanel)({
+  display: 'flex',
+  flexDirection: 'column',
+  position: 'relative',
+  height: '100%',
+  overflowY: 'auto',
+});
+
+const TabPanelFooter = styled.div({
+  boxSizing: 'border-box',
+  paddingRight: 'var(--padding-md)',
+  flex: '0 0',
+  textAlign: 'right',
+});
+
+const TabPanelBody = styled.div({
+  overflowY: 'auto',
+  flex: '1 0',
+});
 
 interface Props {
   environmentId: string;
@@ -92,10 +114,13 @@ export const RequestPane: FC<Props> = ({
 
     // Only update if url changed
     if (url !== request.url) {
-      models.request.update(request, {
+      database.update({
+        ...request,
+        modified: Date.now(),
         url,
         parameters,
-      });
+      // Hack to force the ui to refresh. More info on use-vcs-version
+      }, true);
     }
   }, [request]);
   const gitVersion = useGitVCSVersion();
@@ -240,23 +265,25 @@ export const RequestPane: FC<Props> = ({
             </button>
           </div>
         </TabPanel>
-        <TabPanel className="react-tabs__tab-panel header-editor">
+        <HeaderTabPanel className="react-tabs__tab-panel">
           <ErrorBoundary key={uniqueKey} errorClassName="font-error pad text-center">
-            <RequestHeadersEditor
-              request={request}
-              bulk={settings.useBulkHeaderEditor}
-            />
+            <TabPanelBody>
+              <RequestHeadersEditor
+                request={request}
+                bulk={settings.useBulkHeaderEditor}
+              />
+            </TabPanelBody>
           </ErrorBoundary>
 
-          <div className="pad-right text-right">
+          <TabPanelFooter>
             <button
               className="margin-top-sm btn btn--clicky"
               onClick={handleUpdateSettingsUseBulkHeaderEditor}
             >
               {settings.useBulkHeaderEditor ? 'Regular Edit' : 'Bulk Edit'}
             </button>
-          </div>
-        </TabPanel>
+          </TabPanelFooter>
+        </HeaderTabPanel>
         <TabPanel key={`docs::${uniqueKey}`} className="react-tabs__tab-panel tall scrollable">
           {request.description ? (
             <div>
