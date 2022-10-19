@@ -222,11 +222,11 @@ const App = () => {
                 <FilterHelpModal ref={registerModal} />
                 <RequestRenderErrorModal ref={registerModal} />
                 <GenerateConfigModal ref={registerModal} />
-                <ProjectSettingsModal ref={registerModal} />
+                <ProjectSettingsModal ref={instance => registerModal(instance, 'ProjectSettingsModal')} />
                 <WorkspaceDuplicateModal ref={registerModal} vcs={vcs || undefined} />
                 <CodePromptModal ref={registerModal} />
                 <RequestSettingsModal ref={instance => registerModal(instance, 'RequestSettingsModal')} />
-                <RequestGroupSettingsModal ref={registerModal} />
+                <RequestGroupSettingsModal ref={instance => registerModal(instance, 'RequestGroupSettingsModal')} />
 
                 {activeWorkspace ? <>
                   {/* TODO: Figure out why cookieJar is sometimes null */}
@@ -282,11 +282,11 @@ const App = () => {
 
                 {activeWorkspace && vcs ? (
                   <Fragment>
-                    <SyncStagingModal ref={registerModal} vcs={vcs} />
-                    <SyncMergeModal ref={registerModal} vcs={vcs} />
-                    <SyncBranchesModal ref={registerModal} vcs={vcs} />
-                    <SyncDeleteModal ref={registerModal} vcs={vcs} />
-                    <SyncHistoryModal ref={registerModal} vcs={vcs} />
+                    <SyncStagingModal ref={instance => registerModal(instance, 'SyncStagingModal')} vcs={vcs} />
+                    <SyncMergeModal ref={instance => registerModal(instance, 'SyncMergeModal')} />
+                    <SyncBranchesModal ref={instance => registerModal(instance, 'SyncBranchesModal')} vcs={vcs} />
+                    <SyncDeleteModal ref={instance => registerModal(instance, 'SyncDeleteModal')} vcs={vcs} />
+                    <SyncHistoryModal ref={instance => registerModal(instance, 'SyncHistoryModal')} vcs={vcs} />
                   </Fragment>
                 ) : null}
 
