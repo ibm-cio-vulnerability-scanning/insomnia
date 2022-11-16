@@ -4,10 +4,9 @@ import React, { FC, useEffect, useState } from 'react';
 import {
   NPM_PACKAGE_BASE,
   PLUGIN_HUB_BASE,
-  PLUGIN_PATH,
 } from '../../../common/constants';
 import { docsPlugins } from '../../../common/documentation';
-import { clickLink } from '../../../common/electron-helpers';
+import { clickLink, getDataDirectory } from '../../../common/electron-helpers';
 import * as models from '../../../models';
 import type { Settings } from '../../../models/settings';
 import { createPlugin } from '../../../plugins/create';
@@ -153,7 +152,7 @@ export const Plugins: FC<Props> = ({ settings }) => {
           <div className="selectable force-pre-wrap">
             <b>{installPluginErrMsg}</b>
             {'\n\nThere may be an issue with the plugin itself, as a note you can discover and install plugins from the '}
-            <a href="https://insomnia.rest/plugins">Plugin Hub.</a>
+            <a href={PLUGIN_HUB_BASE}>Plugin Hub.</a>
             <details>
               <summary>Additional Information</summary>
               <pre className="pad-top-sm force-wrap selectable">
@@ -209,7 +208,7 @@ export const Plugins: FC<Props> = ({ settings }) => {
       <hr />
       <div className="text-right">
         <Button
-          onClick={() => clickLink('https://insomnia.rest/plugins')}
+          onClick={() => clickLink(PLUGIN_HUB_BASE)}
         >
           Browse Plugin Hub
         </Button>
@@ -254,7 +253,7 @@ export const Plugins: FC<Props> = ({ settings }) => {
           style={{
             marginLeft: '0.3em',
           }}
-          onClick={() => window.shell.showItemInFolder(PLUGIN_PATH)}
+          onClick={() => window.shell.showItemInFolder(path.join(getDataDirectory(), 'plugins'))}
         >
           Reveal Plugins Folder
         </Button>
