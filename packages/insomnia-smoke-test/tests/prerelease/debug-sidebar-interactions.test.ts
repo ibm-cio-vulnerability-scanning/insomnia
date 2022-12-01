@@ -11,6 +11,7 @@ test.describe('Debug-Sidebar', async () => {
     const text = await loadFixture('simple.yaml');
     await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), text);
     await page.click('button:has-text("Clipboard")');
+    await page.click('div[role="dialog"] button:has-text("New")');
     await page.click('text=Collectionsimplejust now');
   });
 
@@ -64,8 +65,10 @@ test.describe('Debug-Sidebar', async () => {
       await expect(page.locator('.app')).toContainText('Collection Settings wrk');
     });
 
-    test.fixme('Filter by request name', async () => {
-      // TODO implement
+    test('Filter by request name', async ({ page }) => {
+      await page.locator('[placeholder="Filter"]').click();
+      await page.locator('[placeholder="Filter"]').fill('example http');
+      await page.locator('button:has-text("GETexample http")').click();
     });
 
     test.fixme('Filter by a folder name', async () => {
