@@ -23,7 +23,6 @@ import { GitStagingModal } from '../components/modals/git-staging-modal';
 import { LoginModal } from '../components/modals/login-modal';
 import { NunjucksModal } from '../components/modals/nunjucks-modal';
 import { PromptModal } from '../components/modals/prompt-modal';
-import { ProtoFilesModal } from '../components/modals/proto-files-modal';
 import { RequestGroupSettingsModal } from '../components/modals/request-group-settings-modal';
 import { RequestRenderErrorModal } from '../components/modals/request-render-error-modal';
 import { RequestSettingsModal } from '../components/modals/request-settings-modal';
@@ -39,11 +38,9 @@ import { SyncStagingModal } from '../components/modals/sync-staging-modal';
 import { WorkspaceEnvironmentsEditModal } from '../components/modals/workspace-environments-edit-modal';
 import { WorkspaceSettingsModal } from '../components/modals/workspace-settings-modal';
 import { WrapperModal } from '../components/modals/wrapper-modal';
-import { GrpcDispatchModalWrapper } from '../context/grpc';
 import { useGitVCS } from '../hooks/use-git-vcs';
 import { useVCS } from '../hooks/use-vcs';
 import {
-  selectActiveApiSpec,
   selectActiveCookieJar,
   selectActiveEnvironment,
   selectActiveGitRepository,
@@ -53,7 +50,6 @@ import {
 
 const Modals: FC = () => {
   const activeCookieJar = useSelector(selectActiveCookieJar);
-  const activeApiSpec = useSelector(selectActiveApiSpec);
   const activeWorkspace = useSelector(selectActiveWorkspace);
   const activeGitRepository = useSelector(selectActiveGitRepository);
   const activeEnvironment = useSelector(selectActiveEnvironment);
@@ -129,13 +125,11 @@ const Modals: FC = () => {
               workspace={activeWorkspace}
             />
 
-            {activeApiSpec ? (
-              <WorkspaceSettingsModal
-                ref={instance =>
-                  registerModal(instance, 'WorkspaceSettingsModal')
-                }
-              />
-            ) : null}
+            <WorkspaceSettingsModal
+              ref={instance =>
+                registerModal(instance, 'WorkspaceSettingsModal')
+              }
+            />
           </>
         ) : null}
 
@@ -223,14 +217,6 @@ const Modals: FC = () => {
           ref={instance => registerModal(instance, 'ExportRequestsModal')}
         />
 
-        <GrpcDispatchModalWrapper>
-          {dispatch => (
-            <ProtoFilesModal
-              ref={instance => registerModal(instance, 'ProtoFilesModal')}
-              grpcDispatch={dispatch}
-            />
-          )}
-        </GrpcDispatchModalWrapper>
       </ErrorBoundary>
     </div>
   );

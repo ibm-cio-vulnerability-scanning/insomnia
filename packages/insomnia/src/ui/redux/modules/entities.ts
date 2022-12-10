@@ -1,10 +1,11 @@
 import clone from 'clone';
 
-import { type ChangeBufferEvent, database as db } from '../../../common/database';
+import { type ChangeBufferEvent } from '../../../common/database';
 import { pluralize } from '../../../common/misc';
 import * as models from '../../../models';
 import { BaseModel } from '../../../models';
 import { ApiSpec } from '../../../models/api-spec';
+import { CaCertificate } from '../../../models/ca-certificate';
 import { ClientCertificate } from '../../../models/client-certificate';
 import { CookieJar } from '../../../models/cookie-jar';
 import { Environment } from '../../../models/environment';
@@ -64,6 +65,7 @@ export interface EntitiesState {
   requestMetas: EntityRecord<RequestMeta>;
   responses: EntityRecord<Response>;
   oAuth2Tokens: EntityRecord<OAuth2Token>;
+  caCertificate: EntityRecord<CaCertificate>;
   clientCertificates: EntityRecord<ClientCertificate>;
   pluginDatas: EntityRecord<PluginData>;
   unitTestSuites: EntityRecord<UnitTestSuite>;
@@ -95,6 +97,7 @@ export const initialEntitiesState: EntitiesState = {
   requestMetas: {},
   responses: {},
   oAuth2Tokens: {},
+  caCertificate: {},
   clientCertificates: {},
   pluginDatas: {},
   unitTestSuites: {},
@@ -131,17 +134,17 @@ export function reducer(state = initialEntitiesState, action: any) {
       const newState = { ...state };
       const { changes } = action;
 
-      for (const [event, doc] of changes) {
+      for (const [event, doc] of changes as ChangeBufferEvent[]) {
         const referenceName = getReducerName(doc.type);
 
         switch (event) {
-          case db.CHANGE_INSERT:
-          case db.CHANGE_UPDATE:
+          case 'insert':
+          case 'update':
             // @ts-expect-error -- mapping unsoundness
             newState[referenceName][doc._id] = doc;
             break;
 
-          case db.CHANGE_REMOVE:
+          case 'remove':
             // @ts-expect-error -- mapping unsoundness
             delete newState[referenceName][doc._id];
             break;
@@ -197,6 +200,7 @@ export async function allDocs() {
     ...(await models.requestVersion.all()),
     ...(await models.response.all()),
     ...(await models.oAuth2Token.all()),
+    ...(await models.caCertificate.all()),
     ...(await models.clientCertificate.all()),
     ...(await models.apiSpec.all()),
     ...(await models.unitTestSuite.all()),
