@@ -166,7 +166,7 @@ const importRequest = (
     parentId: parentId,
     name,
     method: endpointSchema.method?.toUpperCase(),
-    url: `{{ base_url }}${pathWithParamsAsVariables(endpointSchema.path)}`,
+    url: `{{ _.base_url }}${pathWithParamsAsVariables(endpointSchema.path)}`,
     body,
     description: endpointSchema.description || '',
     headers,
@@ -222,8 +222,8 @@ const setupAuthentication = (
       request.authentication = {
         type: 'basic',
         disabled: false,
-        password: '{{ password }}',
-        username: '{{ username }}',
+        password: '{{ _.password }}',
+        username: '{{ _.username }}',
       };
     }
 
@@ -232,7 +232,7 @@ const setupAuthentication = (
         request.headers?.push({
           name: securityScheme.name,
           disabled: false,
-          value: '{{ api_key }}',
+          value: '{{ _.api_key }}',
         });
       }
 
@@ -240,7 +240,7 @@ const setupAuthentication = (
         request.parameters?.push({
           name: securityScheme.name,
           disabled: false,
-          value: '{{ api_key }}',
+          value: '{{ _.api_key }}',
         });
       }
     }
@@ -252,7 +252,7 @@ const setupAuthentication = (
           grantType: 'authorization_code',
           disabled: false,
           authorizationUrl: securityScheme.authorizationUrl,
-          clientId: '{{ client_id }}',
+          clientId: '{{ _.client_id }}',
           scope: scopes.join(' '),
         };
       }
@@ -263,10 +263,10 @@ const setupAuthentication = (
           grantType: 'password',
           disabled: false,
           accessTokenUrl: securityScheme.tokenUrl,
-          username: '{{ username }}',
-          password: '{{ password }}',
-          clientId: '{{ client_id }}',
-          clientSecret: '{{ client_secret }}',
+          username: '{{ _.username }}',
+          password: '{{ _.password }}',
+          clientId: '{{ _.client_id }}',
+          clientSecret: '{{ _.client_secret }}',
           scope: scopes.join(' '),
         };
       }
@@ -277,8 +277,8 @@ const setupAuthentication = (
           grantType: 'client_credentials',
           disabled: false,
           accessTokenUrl: securityScheme.tokenUrl,
-          clientId: '{{ client_id }}',
-          clientSecret: '{{ client_secret }}',
+          clientId: '{{ _.client_id }}',
+          clientSecret: '{{ _.client_secret }}',
           scope: scopes.join(' '),
         };
       }
@@ -290,8 +290,8 @@ const setupAuthentication = (
           disabled: false,
           accessTokenUrl: securityScheme.tokenUrl,
           authorizationUrl: securityScheme.authorizationUrl,
-          clientId: '{{ client_id }}',
-          clientSecret: '{{ client_secret }}',
+          clientId: '{{ _.client_id }}',
+          clientSecret: '{{ _.client_secret }}',
           scope: scopes.join(' '),
         };
       }
@@ -307,7 +307,7 @@ const setupAuthentication = (
  * I.e. "/foo/:bar" => "/foo/{{ bar }}"
  */
 const pathWithParamsAsVariables = (path?: string) => {
-  return path?.replace(/{([^}]+)}/g, '{{ $1 }}');
+  return path?.replace(/{([^}]+)}/g, '{{ _.$1 }}');
 };
 
 /**
@@ -358,11 +358,13 @@ const prepareBody = (
 ) => {
   const mimeTypes = endpointSchema.consumes || globalMimeTypes || [];
 
-  const supportedMimeType = SUPPORTED_MIME_TYPES.find(mimeType =>
-    mimeTypes.includes(mimeType),
-  );
+  const supportedMimeType = mimeTypes.find(reqMimeType => {
+    return SUPPORTED_MIME_TYPES.some(supportedMimeType => {
+      return reqMimeType.includes(supportedMimeType);
+    });
+  });
 
-  if (supportedMimeType === MIMETYPE_JSON) {
+  if (supportedMimeType && supportedMimeType.includes(MIMETYPE_JSON)) {
     const parameters = endpointSchema.parameters || [];
     const bodyParameter = parameters.find(
       parameter => (parameter as OpenAPIV2.Parameter).in === 'body',
@@ -394,10 +396,7 @@ const prepareBody = (
     };
   }
 
-  if (
-    supportedMimeType === MIMETYPE_URLENCODED ||
-    supportedMimeType === MIMETYPE_MULTIPART
-  ) {
+  if (supportedMimeType && (supportedMimeType.includes(MIMETYPE_URLENCODED) || supportedMimeType.includes(MIMETYPE_MULTIPART))) {
     const parameters = endpointSchema.parameters || [];
     const formDataParameters = ((parameters as unknown) as OpenAPIV2.Parameter[]).filter(
       parameter => parameter.in === 'formData',
@@ -571,7 +570,7 @@ export const convert: Converter = async rawData => {
     parentId: WORKSPACE_ID,
     name: 'Base environment',
     data: {
-      base_url: '{{ scheme }}://{{ host }}{{ base_path }}',
+      base_url: '{{ _.scheme }}://{{ _.host }}{{ _.base_path }}',
     },
   };
 
