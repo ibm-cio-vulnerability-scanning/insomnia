@@ -4,7 +4,6 @@ import { test } from '../../playwright/test';
 test.describe('Environment Editor', async () => {
 
   test.beforeEach(async ({ app, page }) => {
-    await page.getByTestId('project').click();
     await page.getByRole('button', { name: 'Create' }).click();
     const text = await loadFixture('environments.yaml');
     await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), text);
@@ -12,8 +11,7 @@ test.describe('Environment Editor', async () => {
     await page.getByText('Clipboard').click();
     await page.getByRole('button', { name: 'Scan' }).click();
     await page.getByRole('button', { name: 'Import' }).click();
-
-    await page.getByRole('link', { name: 'Debug' }).click();
+    await page.getByText('CollectionSmoke testsjust now').click();
   });
 
   test('create a new environment', async ({ page }) => {

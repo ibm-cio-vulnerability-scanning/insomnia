@@ -7,7 +7,7 @@ import * as session from '../../account/session';
 import { parseApiSpec, resolveComponentSchemaRefs } from '../../common/api-specs';
 import { ACTIVITY_DEBUG, ACTIVITY_SPEC } from '../../common/constants';
 import { database } from '../../common/database';
-import { importResources, scanResources } from '../../common/import';
+import { importResourcesToWorkspace, scanResources } from '../../common/import';
 import { generateId } from '../../common/misc';
 import * as models from '../../models';
 import * as workspaceOperations from '../../models/helpers/workspace-operations';
@@ -104,6 +104,10 @@ export const createNewWorkspaceAction: ActionFunction = async ({
     scope,
     parentId: projectId,
   });
+
+  if (scope === 'design') {
+    await models.apiSpec.getOrCreateForParentId(workspace._id);
+  }
 
   // Create default env, cookie jar, and meta
   await models.environment.getOrCreateForParentId(workspace._id);
@@ -512,8 +516,7 @@ export const generateCollectionFromApiSpecAction: ActionFunction = async ({
     content: apiSpec.contents,
   });
 
-  await importResources({
-    projectId,
+  await importResourcesToWorkspace({
     workspaceId,
   });
 
@@ -744,7 +747,6 @@ export const generateTestsAction: ActionFunction = async ({ params }) => {
 };
 
 export const accessAIApiAction: ActionFunction = async ({ params }) => {
-  console.log('AI');
   const { organizationId, projectId, workspaceId } = params;
 
   invariant(typeof organizationId === 'string', 'Organization ID is required');
