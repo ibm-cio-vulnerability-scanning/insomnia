@@ -1,4 +1,3 @@
-import * as electron from 'electron';
 import React from 'react';
 import type ReactDOM from 'react-dom';
 
@@ -10,7 +9,6 @@ import {
   RENDER_PURPOSE_NO_RENDER,
   RENDER_PURPOSE_SEND,
 } from '../../common/render';
-import * as analytics from '../../ui/analytics';
 import { HtmlElementWrapper } from '../../ui/components/html-element-wrapper';
 import { showAlert, showModal, showPrompt } from '../../ui/components/modals';
 import { PromptModalOptions } from '../../ui/components/modals/prompt-modal';
@@ -64,7 +62,6 @@ export interface AppContext {
 
 export interface PrivateProperties {
   axios: typeof axios;
-  analytics: typeof analytics;
   loadRendererModules: () => Promise<{
     ReactDOM: typeof ReactDOM;
     React: typeof React;
@@ -182,15 +179,15 @@ export function init(renderPurpose: RenderPurpose = RENDER_PURPOSE_GENERAL): {
 
       clipboard: {
         readText() {
-          return electron.clipboard.readText();
+          return window.clipboard.readText();
         },
 
         writeText(text) {
-          electron.clipboard.writeText(text);
+          window.clipboard.writeText(text);
         },
 
         clear() {
-          electron.clipboard.clear();
+          window.clipboard.clear();
         },
       },
 
@@ -216,7 +213,6 @@ export function init(renderPurpose: RenderPurpose = RENDER_PURPOSE_GENERAL): {
     },
     __private: {
       axios,
-      analytics,
       // Provide modules that can be used in the renderer process
       async loadRendererModules() {
         if (typeof globalThis.document === 'undefined') {

@@ -1,4 +1,5 @@
 import clone from 'clone';
+import electron from 'electron';
 import fs from 'fs';
 import mkdirp from 'mkdirp';
 import { join as pathJoin } from 'path';
@@ -6,7 +7,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { cookiesFromJar, jarFromCookies } from '../common/cookies';
 import { database as db } from '../common/database';
-import { getDataDirectory } from '../common/electron-helpers';
 import {
   getContentTypeHeader,
   getLocationHeader,
@@ -141,6 +141,7 @@ export const tryToInterpolateRequest = async (request: Request, environmentId: s
   } catch (err) {
     // @TODO Find a better way to detect missing environment variables in requests and show a more helpful error
     if ('type' in err && err.type === 'render') {
+      console.log(err);
       throw new Error('Failed to run the request. This is likely due to missing environment variables that are referenced in the request.');
     }
     throw new Error(`Failed to render request: ${request._id}`);
@@ -386,7 +387,7 @@ async function _applyResponsePluginHooks(
 export function storeTimeline(timeline: ResponseTimelineEntry[]): Promise<string> {
   const timelineStr = JSON.stringify(timeline, null, '\t');
   const timelineHash = uuidv4();
-  const responsesDir = pathJoin(getDataDirectory(), 'responses');
+  const responsesDir = pathJoin(process.env['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'responses');
   mkdirp.sync(responsesDir);
   const timelinePath = pathJoin(responsesDir, timelineHash + '.timeline');
   if (process.type === 'renderer') {

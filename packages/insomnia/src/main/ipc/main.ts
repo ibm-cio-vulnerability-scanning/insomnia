@@ -4,11 +4,12 @@ import { Spectral } from '@stoplight/spectral-core';
 // @ts-expect-error - This is a bundled file not sure why it's not found
 import { bundleAndLoadRuleset } from '@stoplight/spectral-ruleset-bundler/with-loader';
 import { oas } from '@stoplight/spectral-rulesets';
-import { app, ipcMain, IpcRendererEvent } from 'electron';
+import { app, BrowserWindow, ipcMain, IpcRendererEvent, shell } from 'electron';
 import fs from 'fs';
 
 import { axiosRequest } from '../../network/axios-request';
-import { authorizeUserInWindow } from '../../network/o-auth-2/misc';
+import { SegmentEvent, trackPageView, trackSegmentEvent } from '../analytics';
+import { authorizeUserInWindow } from '../authorizeUserInWindow';
 import { exportAllWorkspaces } from '../export';
 import installPlugin from '../install-plugin';
 import { cancelCurlRequest, curlRequest } from '../network/libcurl-promise';
@@ -16,6 +17,8 @@ import { WebSocketBridgeAPI } from '../network/websocket';
 import { gRPCBridgeAPI } from './grpc';
 
 export interface MainBridgeAPI {
+  loginStateChange: () => void;
+  openInBrowser: (url: string) => void;
   restart: () => void;
   halfSecondAfterAppStart: () => void;
   manualUpdateCheck: () => void;
@@ -30,8 +33,17 @@ export interface MainBridgeAPI {
   on: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void) => () => void;
   webSocket: WebSocketBridgeAPI;
   grpc: gRPCBridgeAPI;
+  trackSegmentEvent: (options: { event: string; properties?: Record<string, unknown> }) => void;
+  trackPageView: (options: { name: string }) => void;
 }
 export function registerMainHandlers() {
+  ipcMain.on('loginStateChange', async () => {
+    console.log('get windows');
+    BrowserWindow.getAllWindows().forEach(w => {
+      console.log('sending login state change to window');
+      w.webContents.send('loggedIn');
+    });
+  });
   ipcMain.handle('exportAllWorkspaces', async () => {
     return exportAllWorkspaces();
   });
@@ -57,12 +69,28 @@ export function registerMainHandlers() {
     cancelCurlRequest(requestId);
   });
 
+  ipcMain.on('trackSegmentEvent', (_, options: { event: SegmentEvent; properties?: Record<string, unknown> }): void => {
+    trackSegmentEvent(options.event, options.properties);
+  });
+  ipcMain.on('trackPageView', (_, options: { name: string }): void => {
+    trackPageView(options.name);
+  });
+
   ipcMain.handle('installPlugin', (_, lookupName: string) => {
     return installPlugin(lookupName);
   });
+
   ipcMain.on('restart', () => {
     app.relaunch();
     app.exit();
+  });
+
+  ipcMain.on('openInBrowser', (_, href: string) => {
+    const { protocol } = new URL(href);
+    if (protocol === 'http:' || protocol === 'https:') {
+      // eslint-disable-next-line no-restricted-properties
+      shell.openExternal(href);
+    }
   });
 
   ipcMain.handle('spectralRun', async (_, { contents, rulesetPath }: {

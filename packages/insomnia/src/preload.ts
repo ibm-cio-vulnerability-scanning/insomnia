@@ -25,7 +25,9 @@ const grpc: gRPCBridgeAPI = {
   loadMethodsFromReflection: options => ipcRenderer.invoke('grpc.loadMethodsFromReflection', options),
 };
 const main: Window['main'] = {
+  loginStateChange: () => ipcRenderer.send('loginStateChange'),
   restart: () => ipcRenderer.send('restart'),
+  openInBrowser: options => ipcRenderer.send('openInBrowser', options),
   halfSecondAfterAppStart: () => ipcRenderer.send('halfSecondAfterAppStart'),
   manualUpdateCheck: () => ipcRenderer.send('manualUpdateCheck'),
   exportAllWorkspaces: () => ipcRenderer.invoke('exportAllWorkspaces'),
@@ -42,6 +44,8 @@ const main: Window['main'] = {
   },
   webSocket,
   grpc,
+  trackSegmentEvent: options => ipcRenderer.send('trackSegmentEvent', options),
+  trackPageView: options => ipcRenderer.send('trackPageView', options),
 };
 const dialog: Window['dialog'] = {
   showOpenDialog: options => ipcRenderer.invoke('showOpenDialog', options),
@@ -54,15 +58,22 @@ const app: Window['app'] = {
 const shell: Window['shell'] = {
   showItemInFolder: options => ipcRenderer.send('showItemInFolder', options),
 };
+const clipboard: Window['clipboard'] = {
+  readText: () => ipcRenderer.sendSync('readText'),
+  writeText: options => ipcRenderer.send('writeText', options),
+  clear: () => ipcRenderer.send('clear'),
+};
 
 if (process.contextIsolated) {
   contextBridge.exposeInMainWorld('main', main);
   contextBridge.exposeInMainWorld('dialog', dialog);
   contextBridge.exposeInMainWorld('app', app);
   contextBridge.exposeInMainWorld('shell', shell);
+  contextBridge.exposeInMainWorld('clipboard', clipboard);
 } else {
   window.main = main;
   window.dialog = dialog;
   window.app = app;
   window.shell = shell;
+  window.clipboard = clipboard;
 }
