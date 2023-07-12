@@ -1,9 +1,10 @@
-import React, { FC, useCallback, useRef } from 'react';
+import React, { FC, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 
-import * as models from '../../../models';
 import type { Environment } from '../../../models/environment';
-import { selectActiveWorkspaceMeta, selectEnvironments, selectHotKeyRegistry } from '../../redux/selectors';
+import { selectHotKeyRegistry } from '../../redux/selectors';
+import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, type DropdownHandle, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
 import { useDocBodyKeyboardShortcuts } from '../keydown-binder';
 import { showModal } from '../modals/index';
@@ -15,33 +16,33 @@ interface Props {
   workspaceId: string;
 }
 
-export const EnvironmentsDropdown: FC<Props> = ({
-  activeEnvironment,
-  workspaceId,
-}) => {
-  const environments = useSelector(selectEnvironments);
+export const EnvironmentsDropdown: FC<Props> = () => {
+  const { organizationId, projectId, workspaceId } = useParams<{ organizationId: string; projectId: string; workspaceId: string}>();
+  const {
+    baseEnvironment,
+    activeEnvironment,
+    subEnvironments,
+  } = useRouteLoaderData(
+    ':workspaceId'
+  ) as WorkspaceLoaderData;
   const hotKeyRegistry = useSelector(selectHotKeyRegistry);
-  const activeWorkspaceMeta = useSelector(selectActiveWorkspaceMeta);
+  const setActiveEnvironmentFetcher = useFetcher();
   const dropdownRef = useRef<DropdownHandle>(null);
-
-  const toggleSwitchMenu = useCallback(() => {
-    dropdownRef.current?.toggle(true);
-  }, []);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useDocBodyKeyboardShortcuts({
-    environment_showSwitchMenu: toggleSwitchMenu,
+    environment_showSwitchMenu: () => setIsDropdownOpen(true),
   });
 
   // NOTE: Base environment might not exist if the users hasn't managed environments yet.
-  const baseEnvironment = environments.find(environment => environment.parentId === workspaceId);
-  const subEnvironments = environments
-    .filter(environment => environment.parentId === (baseEnvironment && baseEnvironment._id))
-    .sort((e1, e2) => e1.metaSortKey - e2.metaSortKey);
   const description = (!activeEnvironment || activeEnvironment === baseEnvironment) ? 'No Environment' : activeEnvironment.name;
 
   return (
     <Dropdown
       ref={dropdownRef}
+      isOpen={isDropdownOpen}
+      onOpen={() => setIsDropdownOpen(true)}
+      onClose={() => setIsDropdownOpen(false)}
       triggerButton={
         <DropdownButton
           className="btn btn--super-compact no-wrap"
@@ -83,9 +84,13 @@ export const EnvironmentsDropdown: FC<Props> = ({
                 ...(environment.color ? { color: environment.color } : {}),
               }}
               onClick={() => {
-                if (activeWorkspaceMeta) {
-                  models.workspaceMeta.update(activeWorkspaceMeta, { activeEnvironmentId: environment._id });
-                }
+                setActiveEnvironmentFetcher.submit({
+                  environmentId: environment._id,
+                },
+                {
+                  method: 'post',
+                  action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/environment/set-active`,
+                });
               }}
             />
           </DropdownItem>
@@ -97,9 +102,13 @@ export const EnvironmentsDropdown: FC<Props> = ({
           icon="empty"
           label="No Environment"
           onClick={() => {
-            if (activeWorkspaceMeta) {
-              models.workspaceMeta.update(activeWorkspaceMeta, { activeEnvironmentId: null });
-            }
+            setActiveEnvironmentFetcher.submit({
+              environmentId: baseEnvironment._id,
+            },
+            {
+              method: 'post',
+              action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/environment/set-active`,
+            });
           }}
         />
       </DropdownItem>

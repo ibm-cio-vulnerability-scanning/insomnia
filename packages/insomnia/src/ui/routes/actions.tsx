@@ -626,13 +626,11 @@ export const generateCollectionAndTestsAction: ActionFunction = async ({ params 
 
         const methodInfo = resolveComponentSchemaRefs(spec, getMethodInfo(request));
 
-        const response = await window.main.axiosRequest({
+        const response = await window.main.insomniaFetch({
           method: 'POST',
-          url: 'https://ai.insomnia.rest/v1/generate-test',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Session-Id': session.getCurrentSessionId(),
-          },
+          origin: 'https://ai.insomnia.rest',
+          path: '/v1/generate-test',
+          sessionId: session.getCurrentSessionId(),
           data: {
             teamId: organizationId,
             request: requests.find(r => r._id === test.requestId),
@@ -709,13 +707,11 @@ export const generateTestsAction: ActionFunction = async ({ params }) => {
   for (const test of tests) {
     async function generateTest() {
       try {
-        const response = await window.main.axiosRequest({
+        const response = await window.main.insomniaFetch({
           method: 'POST',
-          url: 'https://ai.insomnia.rest/v1/generate-test',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Session-Id': session.getCurrentSessionId(),
-          },
+          origin: 'https://ai.insomnia.rest',
+          path: '/v1/generate-test',
+          sessionId: session.getCurrentSessionId(),
           data: {
             teamId: organizationId,
             request: requests.find(r => r._id === test.requestId),
@@ -753,13 +749,11 @@ export const accessAIApiAction: ActionFunction = async ({ params }) => {
   invariant(typeof workspaceId === 'string', 'Workspace ID is required');
 
   try {
-    const response = await window.main.axiosRequest({
+    const response = await window.main.insomniaFetch({
       method: 'POST',
-      url: 'https://ai.insomnia.rest/v1/access',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Session-Id': session.getCurrentSessionId(),
-      },
+      origin: 'https://ai.insomnia.rest',
+      path: '/v1/access',
+      sessionId: session.getCurrentSessionId(),
       data: {
         teamId: organizationId,
       },
@@ -777,4 +771,112 @@ export const accessAIApiAction: ActionFunction = async ({ params }) => {
     console.log(err);
     return { enabled: false };
   }
+};
+
+export const createEnvironmentAction: ActionFunction = async ({
+  params,
+  request,
+}) => {
+  const { workspaceId } = params;
+  invariant(typeof workspaceId === 'string', 'Workspace ID is required');
+
+  const { isPrivate } = await request.json();
+
+  const baseEnvironment = await models.environment.getByParentId(workspaceId);
+
+  invariant(baseEnvironment, 'Base environment not found');
+
+  const environment = await models.environment.create({
+    parentId: baseEnvironment._id,
+    isPrivate,
+  });
+
+  return environment;
+};
+export const updateEnvironment: ActionFunction = async ({ request, params }) => {
+  const { workspaceId } = params;
+  invariant(typeof workspaceId === 'string', 'Workspace ID is required');
+
+  const { environmentId, patch } = await request.json();
+
+  invariant(typeof environmentId === 'string', 'Environment ID is required');
+
+  const environment = await models.environment.getById(environmentId);
+
+  invariant(environment, 'Environment not found');
+  invariant(typeof name === 'string', 'Name is required');
+
+  const baseEnvironment = await models.environment.getByParentId(workspaceId);
+
+  invariant(baseEnvironment, 'Base environment not found');
+
+  const updatedEnvironment = await models.environment.update(environment, patch);
+
+  return updatedEnvironment;
+};
+
+export const deleteEnvironmentAction: ActionFunction = async ({
+  request, params,
+}) => {
+  const { workspaceId } = params;
+  invariant(typeof workspaceId === 'string', 'Workspace ID is required');
+
+  const formData = await request.formData();
+
+  const environmentId = formData.get('environmentId');
+  invariant(typeof environmentId === 'string', 'Environment ID is required');
+
+  const environment = await models.environment.getById(environmentId);
+
+  const baseEnvironment = await models.environment.getByParentId(workspaceId);
+
+  invariant(environment?._id !== baseEnvironment?._id, 'Cannot delete base environment');
+
+  invariant(environment, 'Environment not found');
+
+  await models.environment.remove(environment);
+
+  return null;
+};
+
+export const duplicateEnvironmentAction: ActionFunction = async ({
+  request, params,
+}) => {
+  const { workspaceId } = params;
+  invariant(typeof workspaceId === 'string', 'Workspace ID is required');
+
+  const { environmentId } = await request.json();
+
+  invariant(typeof environmentId === 'string', 'Environment ID is required');
+
+  const environment = await models.environment.getById(environmentId);
+  invariant(environment, 'Environment not found');
+
+  const newEnvironment = await models.environment.duplicate(environment);
+
+  return newEnvironment;
+};
+
+export const setActiveEnvironmentAction: ActionFunction = async ({
+  request, params,
+}) => {
+  const { workspaceId } = params;
+  invariant(typeof workspaceId === 'string', 'Workspace ID is required');
+
+  const formData = await request.formData();
+
+  const environmentId = formData.get('environmentId');
+
+  console.log('environmentId', environmentId);
+
+  invariant(typeof environmentId === 'string', 'Environment ID is required');
+
+  const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(workspaceId);
+
+  invariant(workspaceMeta, 'Workspace meta not found');
+
+  // @TODO - Null vs undefined vs empty string
+  await models.workspaceMeta.update(workspaceMeta, { activeEnvironmentId: environmentId || null });
+
+  return null;
 };
