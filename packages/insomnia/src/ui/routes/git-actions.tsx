@@ -260,12 +260,18 @@ export const gitLogLoader: LoaderFunction = async ({
     workspaceMeta.gitRepositoryId
   );
   invariant(gitRepository, 'Git Repository not found');
+  try {
+    const log = await GitVCS.log({ depth: 35 });
 
-  const log = await GitVCS.log({ depth: 35 });
-
-  return {
-    log,
-  };
+    return {
+      log,
+    };
+  } catch (e) {
+    console.log(e);
+    return {
+      log: [],
+    };
+  }
 };
 
 export interface GitChangesLoaderData {
@@ -294,14 +300,22 @@ export const gitChangesLoader: LoaderFunction = async ({
   invariant(gitRepository, 'Git Repository not found');
 
   const branch = await GitVCS.getBranch();
+  try {
+    const { changes, statusNames } = await getGitChanges(GitVCS, workspace);
 
-  const { changes, statusNames } = await getGitChanges(GitVCS, workspace);
-
-  return {
-    branch,
-    changes,
-    statusNames,
-  };
+    return {
+      branch,
+      changes,
+      statusNames,
+    };
+  } catch (e) {
+    console.log(e);
+    return {
+      branch,
+      changes: [],
+      statusNames: {},
+    };
+  }
 };
 
 // Actions
@@ -313,7 +327,7 @@ type CloneGitActionResult =
 
 export function parseGitToHttpsURL(s: string) {
   // try to convert any git URL to https URL
-  let parsed = fromUrl(s)?.https() || '';
+  let parsed = fromUrl(s)?.https({ noGitPlus: true }) || '';
 
   // fallback for self-hosted git servers, see https://github.com/Kong/insomnia/issues/5967
   // and https://github.com/npm/hosted-git-info/issues/11
@@ -348,7 +362,7 @@ export const cloneGitRepoAction: ActionFunction = async ({
   // URI
   const uri = formData.get('uri');
   invariant(typeof uri === 'string', 'URI is required');
-  repoSettingsPatch.uri = uri;
+  repoSettingsPatch.uri = parseGitToHttpsURL(uri);
   // Author
   const authorName = formData.get('authorName');
   invariant(typeof authorName === 'string', 'Author name is required');
@@ -394,7 +408,6 @@ export const cloneGitRepoAction: ActionFunction = async ({
     properties: vcsSegmentEventProperties('git', 'clone'),
   });
   repoSettingsPatch.needsFullClone = true;
-  repoSettingsPatch.uri = parseGitToHttpsURL(repoSettingsPatch.uri);
   let fsClient = MemClient.createClient();
 
   const providerName = getOauth2FormatName(repoSettingsPatch.credentials);
@@ -414,7 +427,7 @@ export const cloneGitRepoAction: ActionFunction = async ({
       });
 
       return {
-        errors: ['Error cloning repository'],
+        errors: [originalUriError.message],
       };
     }
 
@@ -436,9 +449,7 @@ export const cloneGitRepoAction: ActionFunction = async ({
         },
       });
       return {
-        errors: [
-          'Error Cloning Repository: failed to clone with and without `.git` suffix',
-        ],
+        errors: [dotGitError.message],
       };
     }
   }
@@ -605,7 +616,8 @@ export const updateGitRepoAction: ActionFunction = async ({
   // URI
   const uri = formData.get('uri');
   invariant(typeof uri === 'string', 'URI is required');
-  repoSettingsPatch.uri = uri;
+  repoSettingsPatch.uri = parseGitToHttpsURL(uri);
+
   // Author
   const authorName = formData.get('authorName');
   invariant(typeof authorName === 'string', 'Author name is required');
@@ -1004,7 +1016,9 @@ export const pushToGitRemoteAction: ActionFunction = async ({
   try {
     canPush = await GitVCS.canPush(gitRepository.credentials);
   } catch (err) {
-    return { errors: ['Error Pushing Repository'] };
+    const errorMessage = err instanceof Error ? err.message : 'Unknown Error';
+
+    return { errors: [`Error Pushing Repository ${errorMessage}`] };
   }
   // If nothing to push, display that to the user
   if (!canPush) {
@@ -1277,13 +1291,20 @@ export const gitStatusLoader: LoaderFunction = async ({
 
   const workspace = await models.workspace.getById(workspaceId);
   invariant(workspace, 'Workspace not found');
+  try {
+    const { changes } = await getGitChanges(GitVCS, workspace);
+    const localChanges = changes.filter(i => i.editable).length;
 
-  const { changes } = await getGitChanges(GitVCS, workspace);
-  const localChanges = changes.filter(i => i.editable).length;
-
-  return {
-    status: {
-      localChanges,
-    },
-  };
+    return {
+      status: {
+        localChanges,
+      },
+    };
+  } catch (e) {
+    return {
+      status: {
+        localChanges: 0,
+      },
+    };
+  }
 };
