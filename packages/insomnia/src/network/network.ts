@@ -137,10 +137,8 @@ export const tryToInterpolateRequest = async (request: Request, environmentId: s
       extraInfo,
     });
   } catch (err) {
-    // @TODO Find a better way to detect missing environment variables in requests and show a more helpful error
     if ('type' in err && err.type === 'render') {
-      console.log(err);
-      throw new Error('Failed to run the request. This is likely due to missing environment variables that are referenced in the request.');
+      throw err;
     }
     throw new Error(`Failed to render request: ${request._id}`);
   }
@@ -327,7 +325,7 @@ async function _applyRequestPluginHooks(
       ...pluginContexts.data.init(renderedContext.getProjectId()),
       ...(pluginContexts.store.init(plugin) as Record<string, any>),
       ...(pluginContexts.request.init(newRenderedRequest, renderedContext) as Record<string, any>),
-      ...(pluginContexts.network.init(renderedContext.getEnvironmentId()) as Record<string, any>),
+      ...(pluginContexts.network.init(renderedContext.getEnvironmentId?.()) as Record<string, any>),
     };
 
     try {
@@ -357,7 +355,7 @@ async function _applyResponsePluginHooks(
         ...(pluginContexts.store.init(plugin) as Record<string, any>),
         ...(pluginContexts.response.init(newResponse) as Record<string, any>),
         ...(pluginContexts.request.init(newRequest, renderedContext, true) as Record<string, any>),
-        ...(pluginContexts.network.init(renderedContext.getEnvironmentId()) as Record<string, any>),
+        ...(pluginContexts.network.init(renderedContext.getEnvironmentId?.()) as Record<string, any>),
       };
 
       try {

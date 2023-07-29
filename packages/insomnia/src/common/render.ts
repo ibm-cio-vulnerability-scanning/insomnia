@@ -254,6 +254,7 @@ export async function render<T>(
           x = await templating.render(x, { context, path });
         }
       } catch (err) {
+        console.log(`Failed to render element ${path}`, x);
         if (errorMode !== KEEP_ON_ERROR) {
           throw err;
         }
@@ -316,7 +317,7 @@ export async function getRenderContext(
 
   const project = ancestors.find(isProject);
   const workspace = ancestors.find(isWorkspace);
-
+  console.log('getRenderContext', { request, environmentId, ancestors, purpose, extraInfo, project, workspace });
   if (!workspace) {
     throw new Error('Failed to render. Could not find workspace');
   }
