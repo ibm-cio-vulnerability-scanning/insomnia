@@ -30,8 +30,11 @@ import {
   getCurrentSessionId,
 } from '../../account/session';
 import { getAppWebsiteBaseURL } from '../../common/constants';
+import { database } from '../../common/database';
 import { exportAllData } from '../../common/export-all-data';
+import { updateLocalProjectToRemote } from '../../models/helpers/project';
 import { isOwnerOfOrganization, isPersonalOrganization, isScratchpadOrganizationId, Organization } from '../../models/organization';
+import { Project } from '../../models/project';
 import { isDesign, isScratchpad } from '../../models/workspace';
 import FileSystemDriver from '../../sync/store/drivers/file-system-driver';
 import { MergeConflict } from '../../sync/types';
@@ -194,6 +197,24 @@ export const indexLoader: LoaderFunction = async () => {
         await migrateProjectsIntoOrganization({
           personalOrganization,
         });
+
+        const preferredProjectType = localStorage.getItem('prefers-project-type');
+        if (preferredProjectType === 'remote') {
+          const localProjects = await database.find<Project>('Project', {
+            parentId: personalOrganization.id,
+            remoteId: null,
+          });
+
+          // If any of those fail projects will still be under the organization as local projects
+          for (const project of localProjects) {
+            updateLocalProjectToRemote({
+              project,
+              organizationId: personalOrganization.id,
+              sessionId,
+              vcs,
+            });
+          }
+        }
       }
 
       if (personalOrganization) {
@@ -324,6 +345,11 @@ export const shouldOrganizationsRevalidate: ShouldRevalidateFunction = ({
 
 const UpgradeButton = () => {
   const { currentPlan } = useOrganizationLoaderData();
+
+  // For the enterprise-member plan we don't show the upgrade button.
+  if (currentPlan?.type === 'enterprise-member') {
+    return null;
+  }
 
   // If user has a team or enterprise plan we navigate them to the Enterprise contact page.
   if (['team', 'enterprise'].includes(currentPlan?.type || '')) {
@@ -602,9 +628,16 @@ const OrganizationRoute = () => {
                       }
 
                       if (action === 'new-organization') {
-                        window.main.openInBrowser(
-                          `${getAppWebsiteBaseURL()}/app/organization/create`,
-                        );
+                        if (currentPlan?.type !== 'enterprise-member') {
+                          window.main.openInBrowser(
+                            `${getAppWebsiteBaseURL()}/app/organization/create`,
+                          );
+                        } else {
+                          showAlert({
+                            title: 'Could not create new organization.',
+                            message: 'Your Insomnia account is tied to the enterprise corporate account. Please ask the owner of the enterprise billing to create one for you.',
+                          });
+                        }
                       }
                     }}
                     className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
